@@ -12,3 +12,17 @@ html, body, #root {
   flex-direction: column;
   box-sizing: border-box;
 }
+
+.modal-custom {
+  max-width: 600px; 
+  margin: auto; 
+}
+
+.modal-header {
+  background-color: #007bff; 
+  color: white; 
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end; 
+}
