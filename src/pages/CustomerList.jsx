@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { saveAs } from 'file-saver';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
@@ -90,9 +91,28 @@ const CustomerList = ({ onCustomerAdd }) => {
     setShowEditModal(false);
   };
 
+  const exportToCSV = () => {
+    const exportData = customers.map(({ id, name, email, phone }) => ({
+      name,
+      email,
+      phone
+    }));
+
+    const headers = ['Nimi,Sähköposti,Puhelin\n'];
+    const csv = exportData.map(row => 
+      `${row.name},${row.email},${row.phone}`
+    ).join('\n');
+
+    const blob = new Blob([headers + csv], { type: 'text/csv;charset=utf-8;' });
+    saveAs(blob, `asiakkaat_${new Date().toLocaleDateString()}.csv`);
+  };
+
   return (
     <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
       <h1>Asiakkaat</h1>
+      <Button color="success" onClick={exportToCSV} style={{ marginRight: '1rem' }}>
+         Vie CSV 
+         </Button>
       <Button color="primary" onClick={() => setShowAddModal(true)}>Lisää Uusi Asiakas</Button>
       <AgGridReact
         rowData={customers}

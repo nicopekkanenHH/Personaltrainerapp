@@ -31,11 +31,11 @@ const TrainingList = () => {
     setCustomers(fetchedCustomers);
     
     const fetchedTrainings = [
-      { id: 1, date: new Date(), activity: 'Juoksu', customerId: 1 },
-      { id: 2, date: new Date(), activity: 'Uinti', customerId: 2 },
-      { id: 3, date: new Date(), activity: 'Pyöräily', customerId: 3 },
-      { id: 4, date: new Date(), activity: 'Jooga', customerId: 4 },
-      { id: 5, date: new Date(), activity: 'Voimaharjoittelu', customerId: 5 },
+      { id: 1, date: "2024-11-20T10:00:00", activity: 'Juoksu', customerId: 1 },
+      { id: 2, date: "2024-11-15T12:00:00", activity: 'Uinti', customerId: 2 },
+      { id: 3, date: "2024-11-17T15:00:00", activity: 'Pyöräily', customerId: 3 },
+      { id: 4, date: "2024-11-11T11:00:00", activity: 'Jooga', customerId: 4 },
+      { id: 5, date: "2024-11-27T13:00:00", activity: 'Voimaharjoittelu', customerId: 5 },
     ];
     setTrainings(fetchedTrainings);
   }, []);

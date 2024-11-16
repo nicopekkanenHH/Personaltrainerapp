@@ -8,6 +8,7 @@ const Navbar = () => (
     <ul className="navbar-links">
       <li><Link to="/customers">Asiakkaat</Link></li>
       <li><Link to="/trainings">Harjoitukset</Link></li>
+      <li><Link to="/calendar">Kalenteri</Link></li>
     </ul>
   </nav>
 );
