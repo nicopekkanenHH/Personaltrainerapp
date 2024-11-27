@@ -6,56 +6,50 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { Card, ButtonGroup, Button, Popover, PopoverBody } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+const API_BASE_URL = 'https://customer-rest-service-frontend-personaltrainer.2.rahtiapp.fi/api';
 
 const activityColors = {
-  'Juoksu': '#FF4B4B',
-  'Uinti': '#4B83FF',
-  'Pyöräily': '#4BFF4B',
-  'Jooga': '#FFB74B',
-  'Voimaharjoittelu': '#9B4BFF',
-  'default': '#007bff'
+  'Jogging': '#FF4B4B',
+  'Zumba': '#4B83FF',
+  'Spinning': '#4BFF4B',
+  'Yoga': '#FFB74B',
+  'Gym training': '#9B4BFF',
+  'Gym Training': '#9B4BFF',
+  'Fitness': '#ff1493',
+  'Running': '#006400',
+  'Dancing': '#8b008b'
 };
 
 const CalendarView = () => {
   const [trainings, setTrainings] = useState([]);
   const [view, setView] = useState('dayGridMonth');
   const [popoverEvent, setPopoverEvent] = useState(null);
-  const [customers, setCustomers] = useState([]);
 
   useEffect(() => {
-    const fetchedCustomers = [
-      { id: 1, name: 'Mikko Manninen' },
-      { id: 2, name: 'Siiri Pekkanen' },
-      { id: 3, name: 'Johanna Oksanen'},
-      { id: 4, name: 'Ida Katka'},
-      { id: 5, name: 'Joona Olenius'},
-    ];
-    
-    const fetchedTrainings = [
-      { id: 1, date: "2024-11-20T10:00:00", activity: 'Juoksu', customerId: 1, duration: 60 },
-      { id: 2, date: "2024-11-15T12:00:00", activity: 'Uinti', customerId: 2, duration: 60},
-      { id: 3, date: "2024-11-17T15:00:00", activity: 'Pyöräily', customerId: 3, duration: 45},
-      { id: 4, date: "2024-11-11T11:00:00", activity: 'Jooga', customerId: 4, duration: 30},
-      { id: 5, date: "2024-11-27T13:00:00", activity: 'Voimaharjoittelu', customerId: 5, duration: 40 }
-    ];
-    
-    setCustomers(fetchedCustomers);
-    setTrainings(fetchedTrainings);
+    fetchTrainings();
   }, []);
 
-  
+  const fetchTrainings = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/gettrainings`);
+      const data = await response.json();
+      setTrainings(data);
+    } catch (error) {
+      console.error('Error fetching trainings:', error);
+    }
+  };
+
   const calendarEvents = trainings.map(training => {
-    const customer = customers.find(c => c.id === training.customerId);
     return {
       id: training.id,
-      title: `${training.activity} - ${customer?.name || 'Asiakas'}`,
+      title: `${training.activity} - ${training.customer ? `${training.customer.firstname} ${training.customer.lastname}` : 'Asiakas ei määritelty'}`,
       start: training.date,
-      end: new Date(new Date(training.date).getTime() + training.duration * 60 * 1000),
+      end: new Date(new Date(training.date).getTime() + training.duration * 60000),
       backgroundColor: activityColors[training.activity] || activityColors.default,
       borderColor: activityColors[training.activity] || activityColors.default,
       extendedProps: {
         activity: training.activity,
-        customerName: customer?.name,
+        customerName: training.customer ? `${training.customer.firstname} ${training.customer.lastname}` : 'Asiakas ei määritelty',
         duration: training.duration
       }
     };

@@ -5,7 +5,8 @@ import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import { Button, Modal, ModalHeader, ModalBody, ModalFooter, Form, FormGroup, Label, Input } from 'reactstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import 'react-datepicker/dist/react-datepicker.css';
+
+const API_BASE_URL = 'https://customer-rest-service-frontend-personaltrainer.2.rahtiapp.fi/api';
 
 const CustomerList = ({ onCustomerAdd }) => {
   const [customers, setCustomers] = useState([]);
@@ -14,86 +15,186 @@ const CustomerList = ({ onCustomerAdd }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCustomerId, setEditCustomerId] = useState(null);
-  const [newCustomerName, setNewCustomerName] = useState('');
-  const [newCustomerEmail, setNewCustomerEmail] = useState('');
-  const [newCustomerPhone, setNewCustomerPhone] = useState('');
-  const [editCustomerName, setEditCustomerName] = useState('');
-  const [editCustomerEmail, setEditCustomerEmail] = useState('');
-  const [editCustomerPhone, setEditCustomerPhone] = useState('');
+  const [formData, setFormData] = useState({
+    firstname: '',
+    lastname: '',
+    email: '',
+    phone: '',
+    streetaddress: '',
+    postcode: '',
+    city: ''
+  });
 
   useEffect(() => {
-    const fetchedCustomers = [
-      { id: 1, name: 'Mikko Manninen', email: 'mikko@example.com', phone: '0401234567' },
-      { id: 2, name: 'Siiri Pekkanen', email: 'siiri@example.com', phone: '0402345678' },
-      { id: 3, name: 'Johanna Oksanen', email: 'johanna@example.com', phone: '0403456789' },
-      { id: 4, name: 'Ida Katka', email: 'ida@example.com', phone: '0404567890' },
-      { id: 5, name: 'Joona Olenius', email: 'joona@example.com', phone: '0405678901' },
-    ];
-    setCustomers(fetchedCustomers);
+    fetchCustomers();
   }, []);
 
+  const fetchCustomers = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers`);
+      const data = await response.json();
+      console.log('Raw customer data:', data);
+
+      const processedCustomers = data._embedded.customers.map(customer => {
+        // Otetaan ID linkistä
+        const selfLink = customer._links.self.href;
+        const id = selfLink.split('/').pop(); // Otetaan viimeinen osa URL:sta
+        return { ...customer, id };
+      });
+
+      setCustomers(processedCustomers);  // Turvallinen tarkistus
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+      setCustomers([]); // Aseta tyhjä lista virheen tapahtuessa
+    }
+  };
+
+  // Yhdistetty lomakekenttä renderöinti
+  const renderInput = (id, label, type = 'text') => (
+    <FormGroup>
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        type={type}
+        id={id}
+        value={formData[id]}
+        onChange={(e) => setFormData({ ...formData, [id]: e.target.value })}
+        required
+      />
+    </FormGroup>
+  );
+
   const columnDefs = [
-    { headerName: "Nimi", field: "name", sortable: true, filter: true },
+    { 
+      headerName: "Nimi", 
+      valueGetter: params => `${params.data.firstname} ${params.data.lastname}`,
+      sortable: true, 
+      filter: true 
+    },
     { headerName: "Sähköposti", field: "email", sortable: true, filter: true },
     { headerName: "Puhelin", field: "phone", sortable: true, filter: true },
+    { headerName: "Osoite", field: "streetaddress", sortable: true, filter: true },
+    { headerName: "Postinumero", field: "postcode", sortable: true, filter: true },
+    { headerName: "Kaupunki", field: "city", sortable: true, filter: true },
     {
       headerName: "Actions",
       field: "actions",
-      cellRenderer: (params) => (
-        <div>
-          <Button color="warning" onClick={() => {
-            setEditCustomerId(params.data.id);
-            setEditCustomerName(params.data.name);
-            setEditCustomerEmail(params.data.email);
-            setEditCustomerPhone(params.data.phone);
-            setShowEditModal(true);
-          }}>
-            Muokkaa
-          </Button>
-          <Button color="danger" onClick={() => {
-            setDeleteCustomerId(params.data.id);
-            setShowDeleteModal(true);
-          }}>
-            Poista
-          </Button>
-        </div>
-      ),
-    },
+      cellRenderer: (params) => {
+        console.log('Row data in cell renderer:', params.data);
+        return (
+          <div>
+            <Button color="warning" onClick={() => {
+              const customer = params.data;
+              setEditCustomerId(customer.id);
+              setFormData({
+                firstname: customer.firstname,
+                lastname: customer.lastname,
+                email: customer.email,
+                phone: customer.phone,
+                streetaddress: customer.streetaddress,
+                postcode: customer.postcode,
+                city: customer.city,
+              });
+              setShowEditModal(true);
+            }}>
+              Muokkaa
+            </Button>
+            {' '}
+            <Button color="danger" onClick={() => {
+              const customer = params.data;
+              setDeleteCustomerId(customer.id);
+              setShowDeleteModal(true);
+            }}>
+              Poista
+            </Button>
+          </div>
+        );
+      }
+    }
   ];
 
-  const handleDelete = () => {
-    setCustomers(customers.filter(customer => customer.id !== deleteCustomerId));
-    setShowDeleteModal(false);
+  const handleDelete = async () => {
+    try {
+      if (!deleteCustomerId) {
+        console.error('No customer ID provided for deletion');
+        return;
+      }
+      
+      console.log('Attempting to delete customer with ID:', deleteCustomerId);
+      
+      const response = await fetch(`${API_BASE_URL}/customers/${deleteCustomerId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      await fetchCustomers();
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting customer:', error);
+    }
   };
 
-  const handleAdd = () => {
-    const newCustomer = {
-      id: Date.now(), 
-      name: newCustomerName,
-      email: newCustomerEmail,
-      phone: newCustomerPhone,
-    };
-    setCustomers([...customers, newCustomer]);
-    onCustomerAdd(newCustomer); 
-    setShowAddModal(false);
-    setNewCustomerName('');
-    setNewCustomerEmail('');
-    setNewCustomerPhone('');
+  const handleAdd = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/customers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      const newCustomer = await response.json();
+      await fetchCustomers();
+      if (onCustomerAdd) onCustomerAdd(newCustomer);
+      setShowAddModal(false);
+      setFormData({
+        firstname: '',
+        lastname: '',
+        email: '',
+        phone: '',
+        streetaddress: '',
+        postcode: '',
+        city: ''
+      });
+    } catch (error) {
+      console.error('Error adding customer:', error);
+    }
   };
 
-  const handleEdit = () => {
-    const updatedCustomers = customers.map(customer =>
-      customer.id === editCustomerId
-        ? { ...customer, name: editCustomerName, email: editCustomerEmail, phone: editCustomerPhone }
-        : customer
-    );
-    setCustomers(updatedCustomers);
-    setShowEditModal(false);
+  const handleEdit = async () => {
+    try {
+      if (!editCustomerId) {
+        console.error('No customer ID provided for editing');
+        return;
+      }
+      
+      console.log('Attempting to edit customer with ID:', editCustomerId);
+      console.log('Form data:', formData);
+      
+      const response = await fetch(`${API_BASE_URL}/customers/${editCustomerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      await fetchCustomers();
+      setShowEditModal(false);
+    } catch (error) {
+      console.error('Error updating customer:', error);
+    }
   };
 
   const exportToCSV = () => {
-    const exportData = customers.map(({ id, name, email, phone }) => ({
-      name,
+    const exportData = customers.map(({ firstname, lastname, email, phone }) => ({
+      name: `${firstname} ${lastname}`,  // Yhdistetään firstname ja lastname
       email,
       phone
     }));
@@ -112,7 +213,7 @@ const CustomerList = ({ onCustomerAdd }) => {
       <h1>Asiakkaat</h1>
       <Button color="success" onClick={exportToCSV} style={{ marginRight: '1rem' }}>
          Vie CSV 
-         </Button>
+      </Button>
       <Button color="primary" onClick={() => setShowAddModal(true)}>Lisää Uusi Asiakas</Button>
       <AgGridReact
         rowData={customers}
@@ -121,6 +222,7 @@ const CustomerList = ({ onCustomerAdd }) => {
         paginationPageSize={20}
       />
 
+      {/* Poistomodaali */}
       <Modal isOpen={showDeleteModal} toggle={() => setShowDeleteModal(!showDeleteModal)}>
         <ModalHeader>Vahvista poisto</ModalHeader>
         <ModalBody>
@@ -132,40 +234,18 @@ const CustomerList = ({ onCustomerAdd }) => {
         </ModalFooter>
       </Modal>
 
+      {/* Lisää asiakas */}
       <Modal isOpen={showAddModal} toggle={() => setShowAddModal(!showAddModal)}>
         <ModalHeader>Uusi Asiakas</ModalHeader>
         <ModalBody>
           <Form>
-            <FormGroup>
-              <Label htmlFor="name">Nimi</Label>
-              <Input
-                type="text"
-                id="name"
-                value={newCustomerName}
-                onChange={(e) => setNewCustomerName(e.target.value)}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="email">Sähköposti</Label>
-              <Input
-                type="email"
-                id="email"
-                value={newCustomerEmail}
-                onChange={(e) => setNewCustomerEmail(e.target.value)}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="phone">Puhelin</Label>
-              <Input
-                type="tel"
-                id="phone"
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-                required
-              />
-            </FormGroup>
+            {renderInput("firstname", "Etunimi")}
+            {renderInput("lastname", "Sukunimi")}
+            {renderInput("email", "Sähköposti", "email")}
+            {renderInput("phone", "Puhelin", "tel")}
+            {renderInput("streetaddress", "Osoite")}
+            {renderInput("postcode", "Postinumero")}
+            {renderInput("city", "Kaupunki")}
           </Form>
         </ModalBody>
         <ModalFooter>
@@ -174,40 +254,18 @@ const CustomerList = ({ onCustomerAdd }) => {
         </ModalFooter>
       </Modal>
 
+      {/* Muokkaa asiakasta */}
       <Modal isOpen={showEditModal} toggle={() => setShowEditModal(!showEditModal)}>
         <ModalHeader>Muokkaa Asiakasta</ModalHeader>
         <ModalBody>
           <Form>
-            <FormGroup>
-              <Label htmlFor="name">Nimi</Label>
-              <Input
-                type="text"
-                id="name"
-                value={editCustomerName}
-                onChange={(e) => setEditCustomerName(e.target.value)}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="email">Sähköposti</Label>
-              <Input
-                type="email"
-                id="email"
-                value={editCustomerEmail}
-                onChange={(e) => setEditCustomerEmail(e.target.value)}
-                required
-              />
-            </FormGroup>
-            <FormGroup>
-              <Label htmlFor="phone">Puhelin</Label>
-              <Input
-                type="tel"
-                id="phone"
-                value={editCustomerPhone}
-                onChange={(e) => setEditCustomerPhone(e.target.value)}
-                required
-              />
-            </FormGroup>
+            {renderInput("firstname", "Etunimi")}
+            {renderInput("lastname", "Sukunimi")}
+            {renderInput("email", "Sähköposti", "email")}
+            {renderInput("phone", "Puhelin", "tel")}
+            {renderInput("streetaddress", "Osoite")}
+            {renderInput("postcode", "Postinumero")}
+            {renderInput("city", "Kaupunki")}
           </Form>
         </ModalBody>
         <ModalFooter>
