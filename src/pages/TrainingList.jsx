@@ -46,6 +46,7 @@ const TrainingList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/gettrainings`);
       const data = await response.json();
+      console.log('Fetched trainings:', data);
       setTrainings(data);
     } catch (error) {
       console.error('Error fetching trainings:', error);
@@ -56,6 +57,7 @@ const TrainingList = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/customers`);
       const data = await response.json();
+      console.log('Fetched customers:', data); 
       setCustomers(data._embedded.customers);
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -91,8 +93,9 @@ const TrainingList = () => {
         date: newTraining.date.toISOString(),
         activity: newTraining.activity.value, // Dropdownin valinnan arvo
         duration: parseInt(newTraining.duration),
-        customer: newTraining.customer.value
+        customer: newTraining.customer.value._links.self.href
       };
+      console.log('New training to be added:', trainingData);
 
       await fetch(`${API_BASE_URL}/trainings`, {
         method: 'POST',
@@ -133,11 +136,10 @@ const TrainingList = () => {
           { headerName: "Kesto (min)", field: "duration", sortable: true, filter: true },
           {
             headerName: "Asiakas",
+            //Testaa toimiiko jos valuegetter hakee customer.id, koska selectissä on tämä value
             valueGetter: params => {
               const customer = params.data.customer;
-              if (customer && params.data.customer.id &&
-                params.data.customer.firstname && 
-                params.data.customer.lastname) {
+              if (customer && customer.firstname && customer.lastname) {
               return `${params.data.customer.firstname} ${params.data.customer.lastname}`;
             }
             
@@ -215,11 +217,12 @@ const TrainingList = () => {
               <Select
                 id="customerName"
                 options={customers.map(customer => ({
-                  value: customer.id,
+                  value: customer,
                   label: `${customer.firstname} ${customer.lastname}`
                 }))}
-                onChange={(selectedOption) => 
-                  setNewTraining({ ...newTraining, customer: selectedOption })} 
+                onChange={(selectedOption) => {
+                  console.log('Selected customer:', selectedOption);
+                  setNewTraining({ ...newTraining, customer : selectedOption })}} 
                 placeholder="Valitse asiakas"
               />
             </FormGroup>
