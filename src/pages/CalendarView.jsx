@@ -14,7 +14,6 @@ const activityColors = {
   'Spinning': '#4BFF4B',
   'Yoga': '#FFB74B',
   'Gym training': '#9B4BFF',
-  'Gym Training': '#9B4BFF',
   'Fitness': '#ff1493',
   'Running': '#006400',
   'Dancing': '#8b008b'
